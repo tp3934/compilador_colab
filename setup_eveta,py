@@ -1,41 +1,42 @@
 import os
 import subprocess
+import sys
 
-def run_cmd(command):
-    print(f"Ejecutando: {command}")
-    subprocess.run(command, shell=True, check=True)
+def run_realtime(command):
+    """Ejecuta un comando y muestra la salida en vivo."""
+    print(f"\n>>> EJECUTANDO: {command}\n" + "-"*40)
+    process = subprocess.Popen(
+        command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+    )
+    
+    # Lee la salida línea por línea mientras el proceso corre
+    for line in process.stdout:
+        print(line, end="") # Aquí es donde verás el progreso real
+        sys.stdout.flush()
+        
+    process.wait()
+    if process.returncode != 0:
+        print(f"\n❌ ERROR en el comando: {command}")
+        sys.exit(1)
 
-# --- 1. CONFIGURACIÓN DE FLUTTER ---
-print("--- Descargando e instalando Flutter SDK ---")
+# --- INICIO DEL PROCESO ---
+
+# 1. Instalar Flutter
 if not os.path.exists("/content/flutter"):
-    run_cmd("git clone https://github.com/flutter/flutter.git -b stable /content/flutter")
+    run_realtime("git clone https://github.com/flutter/flutter.git -b stable /content/flutter")
 
-# Configurar variables de entorno para que el sistema encuentre 'flutter'
 os.environ['PATH'] += ":/content/flutter/bin"
 
-print("--- Aceptando licencias de Android ---")
-run_cmd("yes | /content/flutter/bin/flutter doctor --android-licenses")
+# 2. Configurar Android
+run_realtime("yes | flutter doctor --android-licenses")
+run_realtime("flutter doctor")
 
-# --- 2. GESTIÓN DEL REPOSITORIO EVETA ---
-REPO_URL = "https://github.com/evshop/eveta.git"
-REPO_DIR = "/content/eveta"
-TARGET_DIR = "eVetaShop"
+# 3. Clonar y entrar a la carpeta correcta
+run_realtime("git clone https://github.com/evshop/eveta.git /content/eveta")
+os.chdir("/content/eveta/eVetaShop") # Entramos a la subcarpeta
 
-print(f"--- Clonando repositorio: {REPO_URL} ---")
-if os.path.exists(REPO_DIR):
-    run_cmd(f"rm -rf {REPO_DIR}")
-run_cmd(f"git clone {REPO_URL} {REPO_DIR}")
+# 4. Compilar
+run_realtime("flutter pub get")
+run_realtime("flutter build apk --release")
 
-# Cambiamos el directorio de trabajo a la carpeta específica de la app
-os.chdir(f"{REPO_DIR}/{TARGET_DIR}")
-print(f"--- Directorio actual: {os.getcwd()} ---")
-
-# --- 3. COMPILACIÓN ---
-print("--- Descargando paquetes de Flutter ---")
-run_cmd("flutter pub get")
-
-print("--- Iniciando construcción del APK Release ---")
-# Esto generará el archivo en build/app/outputs/flutter-apk/app-release.apk
-run_cmd("flutter build apk --release")
-
-print("--- 🚀 PROCESO COMPLETADO ---")
+print("\n✅ ¡TODO LISTO! El APK se generó correctamente.")

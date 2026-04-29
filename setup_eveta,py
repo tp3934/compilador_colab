@@ -1,0 +1,41 @@
+import os
+import subprocess
+
+def run_cmd(command):
+    print(f"Ejecutando: {command}")
+    subprocess.run(command, shell=True, check=True)
+
+# --- 1. CONFIGURACIÓN DE FLUTTER ---
+print("--- Descargando e instalando Flutter SDK ---")
+if not os.path.exists("/content/flutter"):
+    run_cmd("git clone https://github.com/flutter/flutter.git -b stable /content/flutter")
+
+# Configurar variables de entorno para que el sistema encuentre 'flutter'
+os.environ['PATH'] += ":/content/flutter/bin"
+
+print("--- Aceptando licencias de Android ---")
+run_cmd("yes | /content/flutter/bin/flutter doctor --android-licenses")
+
+# --- 2. GESTIÓN DEL REPOSITORIO EVETA ---
+REPO_URL = "https://github.com/evshop/eveta.git"
+REPO_DIR = "/content/eveta"
+TARGET_DIR = "eVetaShop"
+
+print(f"--- Clonando repositorio: {REPO_URL} ---")
+if os.path.exists(REPO_DIR):
+    run_cmd(f"rm -rf {REPO_DIR}")
+run_cmd(f"git clone {REPO_URL} {REPO_DIR}")
+
+# Cambiamos el directorio de trabajo a la carpeta específica de la app
+os.chdir(f"{REPO_DIR}/{TARGET_DIR}")
+print(f"--- Directorio actual: {os.getcwd()} ---")
+
+# --- 3. COMPILACIÓN ---
+print("--- Descargando paquetes de Flutter ---")
+run_cmd("flutter pub get")
+
+print("--- Iniciando construcción del APK Release ---")
+# Esto generará el archivo en build/app/outputs/flutter-apk/app-release.apk
+run_cmd("flutter build apk --release")
+
+print("--- 🚀 PROCESO COMPLETADO ---")
